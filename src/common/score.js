@@ -8,11 +8,19 @@ globalThis.WW = globalThis.WW || {};
   WW.computeAgg = (tab) => {
     const agg = {
       total: 0, tp: 0, blocked: 0, cookiesSent: 0,
+      tpOwn: 0,       // Anfragen an Konzern-Infrastruktur des Seitenbetreibers
+      tpForeign: 0,   // Anfragen an tatsächlich fremde Stellen
       entities: {},   // key → {key,name,owner,cat,known,count,cookies,maxSev,kinds,hosts}
-      insights: {},   // kind → {kind,sev,label,count,sample,sampleHost}
+      insights: {},   // kind → {kind,sev,label,count,sample,sampleHost} — nur fremde Stellen
+      insightLabels: {}, // kind → {label,sev} — auch für Anbieter-eigene Erkenntnisse
       byCat: {},      // cat → Anzahl Entities
     };
     if (!tab || !tab.requests) return agg;
+
+    // Erkenntnisse erst nach der sameOwner-Markierung global zusammenfassen —
+    // was an die Infrastruktur des Seitenbetreibers geht, ist kein Abfluss
+    // an Fremde und gehört nicht in „Was übertragen wurde".
+    const pending = [];
 
     for (const r of tab.requests) {
       agg.total++;
@@ -40,12 +48,9 @@ globalThis.WW = globalThis.WW || {};
       for (const ins of r.insights || []) {
         ent.maxSev = Math.max(ent.maxSev, ins.sev);
         ent.kinds[ins.kind] = (ent.kinds[ins.kind] || 0) + 1;
-        let g = agg.insights[ins.kind];
-        if (!g) {
-          g = agg.insights[ins.kind] = { kind: ins.kind, sev: ins.sev, label: ins.label, count: 0, sample: ins.detail, sampleHost: r.host };
-        }
-        g.count++;
-        if (ins.sev > g.sev) { g.sev = ins.sev; g.label = ins.label; g.sample = ins.detail; g.sampleHost = r.host; }
+        const known = agg.insightLabels[ins.kind];
+        if (!known || ins.sev > known.sev) agg.insightLabels[ins.kind] = { label: ins.label, sev: ins.sev };
+        pending.push({ entKey: key, ins, host: r.host });
       }
     }
 
@@ -62,9 +67,22 @@ globalThis.WW = globalThis.WW || {};
       if (pageEnt && ent.known && (ent.key === pageEnt.id
           || (ent.owner && ent.owner === pageEnt.owner && SAME_OWNER_OK.has(ent.cat)))) {
         ent.sameOwner = true;
+        agg.tpOwn += ent.count;
         continue;
       }
       agg.byCat[ent.cat] = (agg.byCat[ent.cat] || 0) + 1;
+    }
+    agg.tpForeign = agg.tp - agg.tpOwn;
+
+    // Globale Erkenntnis-Liste: nur, was an fremde Stellen ging.
+    for (const { entKey, ins, host } of pending) {
+      if (agg.entities[entKey].sameOwner) continue;
+      let g = agg.insights[ins.kind];
+      if (!g) {
+        g = agg.insights[ins.kind] = { kind: ins.kind, sev: ins.sev, label: ins.label, count: 0, sample: ins.detail, sampleHost: host };
+      }
+      g.count++;
+      if (ins.sev > g.sev) { g.sev = ins.sev; g.label = ins.label; g.sample = ins.detail; g.sampleHost = host; }
     }
     return agg;
   };
@@ -91,7 +109,9 @@ globalThis.WW = globalThis.WW || {};
     const c = agg.byCat || {};
     const n = (k) => c[k] || 0;
     const ins = agg.insights || {};
-    const entTotal = Object.keys(agg.entities || {}).length;
+    const all = Object.values(agg.entities || {});
+    const entTotal = all.filter((e) => !e.sameOwner).length; // wirklich fremde Stellen
+    const ownTotal = all.length - entTotal;                  // Konzern-Infra des Betreibers
 
     let level = 'gruen';
     const reasons = [];
@@ -112,7 +132,9 @@ globalThis.WW = globalThis.WW || {};
 
     // Zusammenfassungssatz
     let satz;
-    if (entTotal === 0) {
+    if (entTotal === 0 && ownTotal > 0) {
+      satz = `Diese Seite hat nur Server kontaktiert, die zu ihrem eigenen Anbieter gehören — keine fremden Stellen.`;
+    } else if (entTotal === 0) {
       satz = 'Diese Seite hat keine Verbindungen zu fremden Servern aufgebaut — das ist heute selten.';
     } else {
       const parts = [];
@@ -127,7 +149,7 @@ globalThis.WW = globalThis.WW || {};
       }
     }
 
-    return { level, satz, reasons, entTotal };
+    return { level, satz, reasons, entTotal, ownTotal };
   };
 
   // Farben: validierte Status-Palette (gut/warnend/kritisch)

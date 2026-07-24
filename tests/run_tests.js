@@ -238,6 +238,41 @@ t('Erstanbieter keine Entity', Object.keys(agg.entities).length === 0, agg.entit
   t('sameOwner: ggpht markiert', a.entities['google-cdn'].sameOwner === true, a.entities);
   t('sameOwner: social nicht gezählt', !a.byCat.social, a.byCat);
   t('sameOwner: Werbung zählt trotzdem', a.byCat.advertising === 1 && !a.entities['google-ads'].sameOwner, a.byCat);
+  t('sameOwner: Anfragen getrennt gezählt', a.tpOwn === 2 && a.tpForeign === 1, { tpOwn: a.tpOwn, tpForeign: a.tpForeign });
+  const ysc = WW.scoreTab(a);
+  t('sameOwner: zählt nicht als fremde Stelle', ysc.entTotal === 1 && ysc.ownTotal === 2, ysc);
+}
+
+// Erkenntnisse an Anbieter-eigene Server: nicht in der globalen Liste
+// („Was übertragen wurde"), aber weiter am Entity-Kärtchen sichtbar.
+{
+  const cTab = { tabId: 3, pageUrl: 'https://claude.ai/', pageHost: 'claude.ai', pageBase: 'claude.ai', requests: [
+    mkRec({ host: 's-cdn.anthropic.com', base: 'anthropic.com',
+      entity: { id: 'anthropic', name: 'Anthropic (Claude)', owner: 'Anthropic', cat: 'cdn' },
+      insights: [{ kind: 'url-leak', sev: 2, label: 'Besuchte Seite weitergegeben', detail: 'u=…' }] }),
+    mkRec({ host: 'api-iam.intercom.io', base: 'intercom.io',
+      entity: { id: 'intercom', name: 'Intercom', owner: 'Intercom', cat: 'functional' },
+      insights: [{ kind: 'email', sev: 3, label: 'E-Mail-Adresse übertragen', detail: 'user@example.org' }] }),
+  ], dropped: 0 };
+  const a = WW.computeAgg(cTab);
+  t('eigene Erkenntnis nicht global', !a.insights['url-leak'], a.insights);
+  t('fremde Erkenntnis bleibt global', a.insights['email'] && a.insights['email'].count === 1, a.insights);
+  t('eigene Erkenntnis am Kärtchen', a.entities['anthropic'].kinds['url-leak'] === 1, a.entities['anthropic']);
+  t('Label-Fallback vorhanden', a.insightLabels['url-leak'].label === 'Besuchte Seite weitergegeben', a.insightLabels);
+  const sc = WW.scoreTab(a);
+  t('nur Intercom ist fremd', sc.entTotal === 1 && sc.ownTotal === 1, sc);
+  t('Satz zählt eigene Infra nicht mit', sc.satz.includes('1 fremden Stelle'), sc.satz);
+}
+
+// Nur Anbieter-eigene Verbindungen → eigener Satz, grün
+{
+  const oTab = { tabId: 4, pageUrl: 'https://claude.ai/', pageHost: 'claude.ai', pageBase: 'claude.ai', requests: [
+    mkRec({ host: 's-cdn.anthropic.com', base: 'anthropic.com',
+      entity: { id: 'anthropic', name: 'Anthropic (Claude)', owner: 'Anthropic', cat: 'cdn' }, insights: [] }),
+  ], dropped: 0 };
+  const sc = WW.scoreTab(WW.computeAgg(oTab));
+  t('nur eigene Infra → grün', sc.level === 'gruen', sc);
+  t('nur eigene Infra → eigener Satz', sc.satz.includes('eigenen Anbieter'), sc.satz);
 }
 
 // sameOwner über Verlags-Entities: bildstatic auf bild.de

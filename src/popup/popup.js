@@ -23,7 +23,7 @@
 
     const info = WW.LEVEL_INFO[score.level];
     const ents = Object.values(agg.entities)
-      .sort((a, b) => (b.maxSev - a.maxSev) || (b.count - a.count));
+      .sort((a, b) => (!!a.sameOwner - !!b.sameOwner) || (b.maxSev - a.maxSev) || (b.count - a.count));
     const catTitle = (c) => (WW.CATEGORIES[c] || WW.CATEGORIES.unknown).titel;
 
     let html = `
@@ -33,7 +33,7 @@
       </div>
       <div class="stats">
         <div class="stat"><b>${tab.requests}</b><span>Anfragen</span></div>
-        <div class="stat"><b>${agg.tp}</b><span>an Drittserver</span></div>
+        <div class="stat"><b>${agg.tpForeign}</b><span>an fremde Server</span></div>
         <div class="stat"><b>${score.entTotal}</b><span>fremde Stellen</span></div>
       </div>`;
 
@@ -41,9 +41,9 @@
       html += '<div class="entlist"><h3>Wer wurde kontaktiert</h3>';
       for (const e of ents.slice(0, 6)) {
         html += `<div class="ent">
-          <span class="rdot ${riskClass(e.cat)}"></span>
+          <span class="rdot ${e.sameOwner ? 'r1' : riskClass(e.cat)}"></span>
           <span class="name" title="${WW.esc(e.name)}${e.owner ? ' — ' + WW.esc(e.owner) : ''}">${WW.esc(e.name)}</span>
-          <span class="cat">${WW.esc(catTitle(e.cat))}</span>
+          <span class="cat">${e.sameOwner ? 'Anbieter der Seite' : WW.esc(catTitle(e.cat))}</span>
           <span class="cnt">${e.count}×</span>
         </div>`;
       }

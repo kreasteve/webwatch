@@ -117,8 +117,9 @@
           <p>${WW.esc(score.satz)}</p>
           <div class="chips">
             <span class="chip"><b>${tab.requests.length}</b> Anfragen gesamt</span>
-            <span class="chip"><b>${agg.tp}</b> an Drittserver</span>
+            <span class="chip"><b>${agg.tpForeign}</b> an fremde Server</span>
             <span class="chip"><b>${score.entTotal}</b> fremde Stellen</span>
+            ${agg.tpOwn ? `<span class="chip"><b>${agg.tpOwn}</b> an eigene Server des Anbieters</span>` : ''}
             ${tab.navCount > 1 ? `<span class="chip"><b>${tab.navCount}</b> Seiten in dieser Aufzeichnung</span>` : ''}
             ${agg.blocked ? `<span class="chip"><b>${agg.blocked}</b> blockiert (Adblocker o. ä.)</span>` : ''}
             ${tab.dropped ? `<span class="chip">älteste ${tab.dropped} Anfragen verworfen</span>` : ''}
@@ -142,12 +143,26 @@
       html += '</div></div>';
     }
 
-    // Firmen nach Kategorie
+    // Firmen nach Kategorie — Anbieter-eigene Dienste getrennt am Ende
     const ents = Object.values(agg.entities);
+    const foreign = ents.filter((e) => !e.sameOwner);
+    const own = ents.filter((e) => e.sameOwner).sort((a, b) => b.count - a.count);
+    const entCard = (e, c) => {
+      const full = e.known ? WW.entityById(e.key) : null;
+      const kinds = Object.keys(e.kinds || {});
+      const isUnknown = c === 'unknown';
+      return `<div class="entcard">
+        <div class="head"><span class="rdot ${e.sameOwner ? 'r1' : riskClass(c)}"></span><b title="${WW.esc(e.name)}">${WW.esc(e.name)}</b><span class="cnt">${anfragen(e.count)}${e.cookies ? ', Cookies' : ''}</span></div>
+        ${e.owner ? `<div class="owner">gehört zu: ${WW.esc(e.owner)}${e.sameOwner ? ' — Anbieter dieser Seite' : ''}</div>` : `<div class="owner">${WW.esc(Object.keys(e.hosts).join(', '))}</div>`}
+        ${full ? `<div class="info">${WW.esc(full.info)}</div>` : `<div class="info">${WW.esc(cat(c).kurz)}</div>`}
+        ${kinds.length ? `<div class="badges">${kinds.map((k) => badgeFor(k, e.kinds[k], agg)).join('')}</div>` : ''}
+        ${isUnknown ? `<div style="margin-top:8px"><button class="std small report" data-key="${WW.esc(e.key)}" title="Öffnet ein vorausgefülltes GitHub-Issue — du siehst vor dem Absenden genau, was gemeldet wird">Domain melden — hilft der Datenbank</button></div>` : ''}
+      </div>`;
+    };
     if (ents.length) {
       html += '<div class="card"><h2>Wer kontaktiert wurde</h2>';
       for (const c of WW.CATEGORY_ORDER) {
-        const group = ents.filter((e) => e.cat === c).sort((a, b) => b.count - a.count);
+        const group = foreign.filter((e) => e.cat === c).sort((a, b) => b.count - a.count);
         if (!group.length) continue;
         const ci = cat(c);
         const isUnknown = c === 'unknown';
@@ -157,17 +172,16 @@
             <span class="desc">${WW.esc(ci.kurz)}</span>
             ${isUnknown && group.length > 1 ? `<button class="std small" id="report-all-unknown" title="Öffnet ein vorausgefülltes GitHub-Issue — du siehst vor dem Absenden genau, was gemeldet wird">Alle ${group.length} melden</button>` : ''}
           </div><div class="entgrid">`;
-        for (const e of group) {
-          const full = e.known ? WW.entityById(e.key) : null;
-          const kinds = Object.keys(e.kinds || {});
-          html += `<div class="entcard">
-            <div class="head"><span class="rdot ${riskClass(c)}"></span><b title="${WW.esc(e.name)}">${WW.esc(e.name)}</b><span class="cnt">${anfragen(e.count)}${e.cookies ? ', Cookies' : ''}</span></div>
-            ${e.owner ? `<div class="owner">gehört zu: ${WW.esc(e.owner)}${e.sameOwner ? ' — Anbieter dieser Seite' : ''}</div>` : `<div class="owner">${WW.esc(Object.keys(e.hosts).join(', '))}</div>`}
-            ${full ? `<div class="info">${WW.esc(full.info)}</div>` : `<div class="info">${WW.esc(cat(c).kurz)}</div>`}
-            ${kinds.length ? `<div class="badges">${kinds.map((k) => badgeFor(k, e.kinds[k], agg)).join('')}</div>` : ''}
-            ${isUnknown ? `<div style="margin-top:8px"><button class="std small report" data-key="${WW.esc(e.key)}" title="Öffnet ein vorausgefülltes GitHub-Issue — du siehst vor dem Absenden genau, was gemeldet wird">Domain melden — hilft der Datenbank</button></div>` : ''}
-          </div>`;
-        }
+        for (const e of group) html += entCard(e, c);
+        html += '</div>';
+      }
+      if (own.length) {
+        html += `<div class="cathead">
+            <span class="rdot r1"></span><h3>Anbieter dieser Seite</h3>
+            <span class="riskchip r1">${RISK_NAME[1]}</span>
+            <span class="desc">Diese Server gehören zum Betreiber der besuchten Seite — technisch eigene Adressen, faktisch derselbe Anbieter. Sie zählen nicht als fremde Stellen.</span>
+          </div><div class="entgrid">`;
+        for (const e of own) html += entCard(e, e.cat);
         html += '</div>';
       }
       html += '</div>';
@@ -184,7 +198,7 @@
   };
 
   const badgeFor = (kind, n, agg) => {
-    const g = agg.insights[kind];
+    const g = agg.insights[kind] || (agg.insightLabels || {})[kind];
     const label = g ? g.label : kind;
     const sev = g ? g.sev : 1;
     return `<span class="badge s${sev}">${WW.esc(label)}${n > 1 ? ` ${n}×` : ''}</span>`;
@@ -249,7 +263,7 @@
       html += `<tr class="row ${sel}" data-rid="${WW.esc(r.rid)}">
         <td class="num">${WW.fmtTime(r.ts)}</td>
         <td class="host ${fp}" title="${WW.esc(r.url)}">${WW.esc(r.host)}</td>
-        <td class="${fp}">${r.entity ? WW.esc(r.entity.name) : (r.tp ? '<span class="hint">unbekannt</span>' : '<span class="firstparty">eigene Seite</span>')}</td>
+        <td class="${fp}">${r.entity ? WW.esc(r.entity.name) + ((d.agg.entities[r.entity.id] || {}).sameOwner ? ' <span class="hint">(Anbieter der Seite)</span>' : '') : (r.tp ? '<span class="hint">unbekannt</span>' : '<span class="firstparty">eigene Seite</span>')}</td>
         ${profi ? `<td>${WW.esc(r.type)}</td><td>${WW.esc(r.method)}</td><td>${r.err ? `<span class="err" title="${WW.esc(r.err)}">✕</span>` : (r.status ?? '…')}</td>` : `<td>${WW.esc(WW.typeLabel(r.type, r.method))}${r.err ? ' <span class="err" title="' + WW.esc(r.err) + '">✕</span>' : ''}</td>`}
         <td>${insBadges}${(r.insights || []).length > 3 ? `<span class="badge">+${r.insights.length - 3}</span>` : ''}</td>
       </tr>`;
@@ -386,6 +400,8 @@
         o.firma = r.entity.name;
         if (r.entity.owner) o.konzern = r.entity.owner;
         o.kategorie = cat(r.entity.cat).titel;
+        const ent = d.agg.entities[r.entity.id];
+        if (ent && ent.sameOwner) o.gehoert_zum_seitenanbieter = true;
       } else if (r.tp) {
         o.firma = 'unbekannt (' + (r.base || r.host) + ')';
       }
@@ -414,7 +430,12 @@
       frage_vorschlag: 'Bitte erkläre mir verständlich: Was verrät dieser Mitschnitt über mich, welche Firmen bekommen dabei Daten, wozu vermutlich — und was davon ist bedenklich?',
       exportiert: new Date().toISOString(),
       seite: d.tab.pageUrl,
-      bewertung: { ampel: d.score.level, zusammenfassung: d.score.satz },
+      bewertung: {
+        ampel: d.score.level,
+        zusammenfassung: d.score.satz,
+        fremde_stellen: d.score.entTotal,
+        dienste_des_seitenanbieters: d.score.ownTotal || 0,
+      },
       anfragen: anfr,
     };
   };
@@ -486,13 +507,14 @@
       const y = cy + ring * Math.sin(angle);
       const r = 9 + Math.sqrt(e.count / maxCount) * 14;
       const sw = 1 + Math.min(5, Math.log2(e.count + 1));
-      const fill = e.fp ? 'var(--accent)' : RISK_FILL[cat(e.cat).risiko];
+      const fill = (e.fp || e.sameOwner) ? 'var(--accent)' : RISK_FILL[cat(e.cat).risiko];
       edges += `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--edge)" stroke-width="${sw.toFixed(1)}" opacity="0.55"/>`;
       const label = WW.cap(e.name, 22);
-      const sub = e.fp ? `eigene Seite · ${anfragen(e.count)}` : anfragen(e.count);
+      const sub = e.fp ? `eigene Seite · ${anfragen(e.count)}`
+        : e.sameOwner ? `Anbieter der Seite · ${anfragen(e.count)}` : anfragen(e.count);
       const tip = e.fp
         ? `${e.name} — Server der besuchten Seite selbst\n${anfragen(e.count)}`
-        : `${e.name}${e.owner ? ' — ' + e.owner : ''}\n${cat(e.cat).titel} · ${anfragen(e.count)}${e.cookies ? ' · Cookies gesendet' : ''}`;
+        : `${e.name}${e.owner ? ' — ' + e.owner : ''}${e.sameOwner ? ' (Anbieter dieser Seite)' : ''}\n${cat(e.cat).titel} · ${anfragen(e.count)}${e.cookies ? ' · Cookies gesendet' : ''}`;
       nodes += `<g class="node" data-key="${WW.esc(e.key)}" style="cursor:pointer">
         <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="${fill}" stroke="var(--surface)" stroke-width="2"/>
         <text x="${x.toFixed(1)}" y="${(y + r + 14).toFixed(1)}" text-anchor="middle" font-size="11" fill="var(--ink)">${WW.esc(label)}</text>
@@ -512,7 +534,7 @@
         ${nodes}
       </svg></div>
       <div class="legend">
-        <span class="item"><span class="rdot" style="background:var(--accent)"></span> eigene Seite</span>
+        <span class="item"><span class="rdot" style="background:var(--accent)"></span> Seite &amp; ihr Anbieter</span>
         <span class="item"><span class="rdot r3"></span> hohes Risiko</span>
         <span class="item"><span class="rdot r2"></span> mittleres Risiko</span>
         <span class="item"><span class="rdot r1"></span> geringes Risiko</span>
