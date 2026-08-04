@@ -45,19 +45,18 @@ der Server sind für sie technisch nicht lesbar.
 - Es gibt keine Cloud-Synchronisierung. Die Chrome-Storage-Sync-API wird nicht
   verwendet.
 
-## Was Datenspur nicht tut
+## Das gibt es bei Datenspur nicht
 
 - **Keine Übertragung.** Die Erweiterung baut keine eigenen Netzwerk-
   verbindungen auf, meldet sich bei keinem Server und enthält keine Telemetrie.
-- **Keine Weitergabe und kein Verkauf.** Es werden keine Nutzerdaten an Dritte
-  übertragen oder verkauft — auch nicht zur Bonitätsprüfung oder für
-  Darlehenszwecke.
+- **Keine Weitergabe, kein Verkauf.** Nutzerdaten gehen an niemanden — auch
+  nicht zur Bonitätsprüfung oder für Darlehenszwecke.
 - **Keine zweckfremde Nutzung.** Die verarbeiteten Daten dienen ausschließlich
   der Anzeige in der Erweiterung selbst.
-- **Kein Blockieren, kein Verändern.** Datenspur beobachtet nur; keine Anfrage
-  wird verhindert oder verändert.
-- **Kein nachgeladener Code.** Sämtliche Skripte und die Tracker-Datenbank sind
-  im Paket enthalten.
+- **Kein Blockieren, kein Verändern.** Datenspur beobachtet nur; jede Anfrage
+  läuft unverändert durch.
+- **Kein nachgeladener Code.** Sämtliche Skripte und die Tracker-Datenbank
+  sind im Paket enthalten.
 
 ## Wenn du selbst Daten weitergibst
 
