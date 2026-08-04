@@ -45,7 +45,7 @@ der Server sind für sie technisch nicht lesbar.
 - Es gibt keine Cloud-Synchronisierung. Die Chrome-Storage-Sync-API wird nicht
   verwendet.
 
-## Verbindliche Zusagen
+## Was wir tun, um deine Daten zu schützen
 
 - **Keine Übertragung.** Die Erweiterung baut keine eigenen Netzwerk-
   verbindungen auf, meldet sich bei keinem Server und enthält keine Telemetrie.
