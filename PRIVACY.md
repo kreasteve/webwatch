@@ -45,7 +45,7 @@ der Server sind für sie technisch nicht lesbar.
 - Es gibt keine Cloud-Synchronisierung. Die Chrome-Storage-Sync-API wird nicht
   verwendet.
 
-## Das gibt es bei Datenspur nicht
+## Verbindliche Zusagen
 
 - **Keine Übertragung.** Die Erweiterung baut keine eigenen Netzwerk-
   verbindungen auf, meldet sich bei keinem Server und enthält keine Telemetrie.
