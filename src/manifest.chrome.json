@@ -3,7 +3,7 @@
   "name": "Datenspur",
   "version": "0.3.2",
   "homepage_url": "https://github.com/kreasteve/datenspur",
-  "description": "Macht sichtbar, was besuchte Websites an ihre Server und an Dritte schicken — mit Klartext-Erklärungen für Laien und Rohdaten für Profis. Alles bleibt lokal.",
+  "description": "Zeigt, was eine Website an ihren Betreiber und an Dritte schickt — Klartext für Laien, Rohdaten für Profis. Alles bleibt lokal.",
   "permissions": [
     "webRequest",
     "tabs",

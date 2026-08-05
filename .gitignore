@@ -3,3 +3,4 @@ dist/
 smoketest/screenshots/
 smoketest/unknown_domains.json
 .DS_Store
+__pycache__/

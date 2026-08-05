@@ -6,16 +6,22 @@ const path = require('path');
 const vm = require('vm');
 
 const SRC = path.join(__dirname, '..', 'src', 'common');
-const FILES = ['compat.js', 'domain.js', 'categories.js', 'trackerdb.js', 'decoder.js', 'insights.js', 'score.js'];
+const FILES = ['compat.js', 'domain.js', 'categories.js', 'trackerdb.js', 'dbupdate.js',
+  'decoder.js', 'insights.js', 'score.js'];
 
 const sandbox = {
   console, JSON, Math, Date, URL, URLSearchParams,
   TextDecoder, TextEncoder, atob, btoa,
+  setTimeout, clearTimeout,
 };
 vm.createContext(sandbox);
 for (const f of FILES) {
   vm.runInContext(fs.readFileSync(path.join(SRC, f), 'utf8'), sandbox, { filename: f });
 }
+// Der Tab-Speicher liegt nicht unter common/, wird aber mitgetestet
+// (Reset-Verhalten bei Neuladen vs. selbst ausgelöster Navigation).
+vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'src', 'background', 'store.js'), 'utf8'),
+  sandbox, { filename: 'store.js' });
 const WW = sandbox.WW;
 
 let pass = 0;
@@ -292,6 +298,119 @@ agg = WW.computeAgg(mkTab([
   mkRec({ err: 'NS_ERROR_ABORT', insights: [] }),
 ]));
 t('blockiert zählt beide Browser', agg.blocked === 2, agg.blocked);
+
+// ── Nachladen der Tracker-Datenbank ──────────────────────────
+const gut = {
+  stand: '2099-01-01',
+  eintraege: [{ id: 'demo-x', name: 'Demo X', owner: 'Demo AG', cat: 'advertising',
+    dom: ['demo-x.example'], info: 'Ein Testeintrag.' }],
+};
+const wirft = (name, daten, teil) => {
+  try { WW.dbUpdate.pruefe(daten); t(name, false, 'keine Ausnahme'); }
+  catch (e) { t(name, !teil || e.message.includes(teil), e.message); }
+};
+t('DB-Prüfung nimmt gültige Datei', WW.dbUpdate.pruefe(gut).eintraege.length === 1);
+t('DB-Prüfung normalisiert Domains klein',
+  WW.dbUpdate.pruefe({ ...gut, eintraege: [{ ...gut.eintraege[0], dom: ['DEMO-X.EXAMPLE'] }] })
+    .eintraege[0].dom[0] === 'demo-x.example');
+wirft('DB-Prüfung ohne Standsdatum', { eintraege: gut.eintraege }, 'Standsdatum');
+wirft('DB-Prüfung mit falschem Standsformat', { ...gut, stand: '4.8.2026' }, 'Standsdatum');
+wirft('DB-Prüfung ohne Einträge-Feld', { stand: '2099-01-01' }, 'keine Einträge');
+wirft('DB-Prüfung mit leerer Liste', { ...gut, eintraege: [] }, 'verwertbar');
+wirft('DB-Prüfung mit unbekannter Kategorie',
+  { ...gut, eintraege: [{ ...gut.eintraege[0], cat: 'erfunden' }] }, 'verwertbar');
+wirft('DB-Prüfung mit ungültiger Domain',
+  { ...gut, eintraege: [{ ...gut.eintraege[0], dom: ['kein host'] }] }, 'verwertbar');
+wirft('DB-Prüfung mit Skript statt Domain',
+  { ...gut, eintraege: [{ ...gut.eintraege[0], dom: ['javascript:alert(1)'] }] }, 'verwertbar');
+wirft('DB-Prüfung mit Kategorie unknown',
+  { ...gut, eintraege: [{ ...gut.eintraege[0], cat: 'unknown' }] }, 'verwertbar');
+// Doppelte IDs: der zweite Eintrag fliegt raus, ohne die Datei zu verwerfen
+t('DB-Prüfung überspringt doppelte IDs',
+  WW.dbUpdate.pruefe({ stand: '2099-01-01', eintraege: [gut.eintraege[0], gut.eintraege[0],
+    { id: 'demo-y', name: 'Y', owner: '', cat: 'cdn', dom: ['demo-y.example'], info: 'Zwei.' },
+    { id: 'demo-z', name: 'Z', owner: '', cat: 'cdn', dom: ['demo-z.example'], info: 'Drei.' },
+    { id: 'demo-w', name: 'W', owner: '', cat: 'cdn', dom: ['demo-w.example'], info: 'Vier.' }] })
+    .eintraege.length === 4);
+
+// Einspielen tauscht den Index wirklich aus und die Referenz bleibt erhalten
+const vorher = WW.TRACKER_ENTITIES;
+const standVorher = WW.TRACKER_DB_STAND;
+const originalEintraege = WW.TRACKER_ENTITIES.slice();
+WW.dbUpdate.anwenden(WW.dbUpdate.pruefe(gut));
+t('Einspielen behält die Array-Referenz', WW.TRACKER_ENTITIES === vorher);
+t('Einspielen setzt den Stand', WW.TRACKER_DB_STAND === '2099-01-01');
+t('Einspielen markiert die Quelle', WW.TRACKER_DB_QUELLE === 'nachgeladen');
+t('Einspielen findet neue Domain', (WW.classifyHost('demo-x.example') || {}).id === 'demo-x');
+t('Einspielen entfernt alte Domain', WW.classifyHost('doubleclick.net') === null);
+t('Einspielen lässt Pfad-Hinweise unangetastet', Array.isArray(WW.PATH_HINTS) && WW.PATH_HINTS.length > 0);
+
+// Danach den mitgelieferten Stand wiederherstellen — die folgenden Tests
+// pruefen die echte Datenbank, nicht den Demo-Eintrag.
+WW.TRACKER_ENTITIES.length = 0;
+for (const e of originalEintraege) WW.TRACKER_ENTITIES.push(e);
+WW.rebuildTrackerIndex();
+WW.TRACKER_DB_STAND = standVorher;
+WW.TRACKER_DB_QUELLE = 'mitgeliefert';
+t('Wiederherstellung stellt die Datenbank zurueck',
+  (WW.classifyHost('doubleclick.net') || {}).id === 'google-ads');
+
+// ── Neue Eintraege aus Nutzer-Meldungen (August 2026) ────────
+const cls = (h) => (WW.classifyHost(h) || {});
+t('Tealium als Tag-Manager', cls('tags.tiqcdn.com').cat === 'tagmanager', cls('tags.tiqcdn.com'));
+t('Bazaarvoice erkannt', cls('apps.bazaarvoice.com').id === 'bazaarvoice');
+t('Gorgias-Chat erkannt', cls('config.gorgias.chat').cat === 'marketing');
+t('Rebuy erkannt', cls('cdn.rebuyengine.com').id === 'rebuy');
+t('Clerk.io erkannt', cls('api.clerk.io').id === 'clerk-io');
+t('jQuery-CDN als CDN', cls('code.jquery.com').cat === 'cdn');
+t('Shopify-Shopdomain erkannt', cls('necessaireinc.myshopify.com').id === 'shopify');
+t('Equally AI erkannt', cls('widget.prod.equally.ai').cat === 'functional');
+t('Haendlerbund erkannt', cls('logo.haendlerbund.de').id === 'haendlerbund');
+t('Versandhandelsregister erkannt', cls('versandhandel.dimdi.de').id === 'bfarm-versandhandel');
+t('Recruitee-CDN erkannt', cls('careers.recruiteecdn.com').id === 'recruitee');
+t('Indeed erkannt', cls('apply.indeed.com').id === 'indeed-apply');
+t('Ziggeo erkannt', cls('api-eu-west-1.ziggeo.com').id === 'ziggeo');
+t('dm-Technikdomains gehoeren dm', cls('products.dm-static.com').owner === 'dm-drogerie markt'
+  && cls('services.dmtech.com').owner === 'dm-drogerie markt');
+// dm.de selbst liegt in derselben Entity - nur so greift die sameOwner-Logik
+t('dm.de zeigt auf dieselbe Entity', cls('www.dm.de').id === cls('content.services.dmtech.com').id);
+// Nicht belegbare Domains bleiben bewusst draussen
+t('dy-api.eu bleibt unbekannt', WW.classifyHost('direct.dy-api.eu') === null);
+t('alia-prod.com bleibt unbekannt', WW.classifyHost('backend.alia-prod.com') === null);
+t('provenexpert.net bleibt unbekannt', WW.classifyHost('provenexpert.net') === null);
+
+// ── Tab-Speicher: Neuladen vs. Navigation vs. Cookie-Banner ──
+const S = WW.store;
+const tabOf = () => S.getOrCreateTab(7);
+const req = (rid) => ({ rid, ts: 1, url: 'https://tracker.example/' + rid, host: 'tracker.example',
+  base: 'tracker.example', type: 'image', tp: true, insights: [] });
+
+S.settings.resetOnReload = true;
+S.resetTab(7, 'https://beispiel.de/artikel');
+S.addRequest(7, req('a'));
+t('Anfrage im Tab gespeichert', tabOf().requests.length === 1, tabOf().requests.length);
+
+// Nutzer laedt neu (nicht von der Seite ausgeloest) -> leert
+S.onMainFrame(7, 'https://beispiel.de/artikel', false);
+t('F5 leert die Aufzeichnung', tabOf().requests.length === 0, tabOf().requests.length);
+
+// Seite laedt sich selbst neu (Cookie-Banner) -> Daten bleiben stehen
+S.resetTab(7, 'https://beispiel.de/artikel');
+S.addRequest(7, req('b'));
+S.onMainFrame(7, 'https://beispiel.de/artikel', true);
+t('Cookie-Banner-Reload behaelt die Daten', tabOf().requests.length === 1, tabOf().requests.length);
+t('Cookie-Banner-Reload zaehlt keine neue Seite', tabOf().navCount === 1, tabOf().navCount);
+
+// Navigation auf eine andere Seite sammelt weiter und zaehlt hoch
+S.onMainFrame(7, 'https://beispiel.de/anderes', false);
+t('Navigation behaelt die Daten', tabOf().requests.length === 1, tabOf().requests.length);
+t('Navigation zaehlt eine Seite hoch', tabOf().navCount === 2, tabOf().navCount);
+
+// Abgewaehltes Neuladen-leert behaelt die Daten auch bei F5
+S.settings.resetOnReload = false;
+S.onMainFrame(7, 'https://beispiel.de/anderes', false);
+t('ohne Neuladen-leert bleibt alles stehen', tabOf().requests.length === 1, tabOf().requests.length);
+S.settings.resetOnReload = true;
 
 // ── Ergebnis ─────────────────────────────────────────────────
 console.log(`\n${pass} Tests bestanden, ${fail} fehlgeschlagen.`);

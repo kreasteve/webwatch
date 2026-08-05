@@ -63,11 +63,17 @@ globalThis.WW = globalThis.WW || {};
     // Neue Hauptseiten-Anfrage in einem Tab: Reload leert (wenn nicht
     // abgewählt), Navigation zu einer anderen Seite sammelt weiter —
     // die Daten bleiben, bis der Tab geschlossen oder manuell geleert wird.
-    onMainFrame(tabId, url) {
+    //
+    // `vonSeite` unterscheidet, wer die Navigation ausgelöst hat. Lädt die
+    // Seite sich selbst neu — was Cookie-Banner nach dem Zustimmen fast immer
+    // tun —, wird nicht geleert: Der Nutzer hat nichts neu geladen und will
+    // sehen, was vor und nach der Einwilligung passiert ist. Nur ein echtes
+    // Neuladen durch den Nutzer (F5, Adressleiste) beginnt von vorn.
+    onMainFrame(tabId, url, vonSeite) {
       const tab = tabs.get(tabId);
       if (!tab || !tab.pageUrl) { this.resetTab(tabId, url); return; }
       const isReload = stripHash(tab.pageUrl) === stripHash(url);
-      if (isReload && this.settings.resetOnReload) { this.resetTab(tabId, url); return; }
+      if (isReload && this.settings.resetOnReload && !vonSeite) { this.resetTab(tabId, url); return; }
       const host = WW.domain.getHost(url);
       tab.pageUrl = url;
       tab.pageHost = host;

@@ -201,12 +201,18 @@ globalThis.WW = globalThis.WW || {};
       'Enterprise-Verhaltensanalyse: zeichnet Interaktionen detailliert auf und aggregiert sie zu „Experience Analytics".'),
 
     // ── Statistik & Analyse ──────────────────────────────────────────────
+    E('bazaarvoice', 'Bazaarvoice', 'Bazaarvoice (Marlin Equity)', 'analytics',
+      ['bazaarvoice.com'],
+      'Liefert Bewertungen und Kundenfotos in Shops aus und misst dabei, wer welche Produkte ansieht; der Anbieter vermarktet diese Daten auch für Werbezwecke.'),
     E('google-analytics', 'Google Analytics', 'Google (Alphabet)', 'analytics',
       ['google-analytics.com', 'analytics.google.com'],
       'Das mit Abstand verbreitetste Analyse-Werkzeug. Die Besuchsdaten fließen an Google und können dort mit anderen Google-Daten zusammengeführt werden.'),
     E('gtm', 'Google Tag Manager', 'Google (Alphabet)', 'tagmanager',
       ['googletagmanager.com'],
       'Googles Tag-Manager: lädt und steuert weitere Tracking-Skripte. Die Anfragen direkt danach zeigen, was er gestartet hat.'),
+    E('tealium', 'Tealium (Tag-Manager)', 'Tealium', 'tagmanager',
+      ['tiqcdn.com'],
+      'Tag-Manager großer Marken: lädt und steuert von tiqcdn.com aus weitere Tracking-Skripte und verteilt Besuchsdaten an angebundene Dienste.'),
     E('matomo-cloud', 'Matomo Cloud', 'InnoCraft (NZ)', 'analytics',
       ['matomo.cloud', 'innocraft.cloud'],
       'Gehostete Variante des Open-Source-Tools Matomo; datenschutzfreundlicher als Google Analytics, Daten liegen aber beim Dienstleister.'),
@@ -342,6 +348,15 @@ globalThis.WW = globalThis.WW || {};
       'Eingebettete Player melden SoundCloud den Seitenbesuch.'),
 
     // ── Marketing & Kundenbindung ────────────────────────────────────────
+    E('gorgias', 'Gorgias (Support-Chat)', 'Gorgias', 'marketing',
+      ['gorgias.chat'],
+      'Support-Chat für Online-Shops. Das Widget lädt auf jeder Seite mit und erkennt wiederkehrende Kundinnen und Kunden.'),
+    E('rebuy', 'Rebuy', 'Rebuy, LLC', 'marketing',
+      ['rebuyengine.com'],
+      'Personalisiert Produktempfehlungen und Zusatzangebote in Shopify-Shops und wertet dafür das Verhalten im Shop aus.'),
+    E('clerk-io', 'Clerk.io', 'Clerk.io (DK)', 'marketing',
+      ['clerk.io'],
+      'Liefert Suche und Produktempfehlungen für Shops und wertet dafür aus, was Besucher suchen und ansehen.'),
     E('hubspot', 'HubSpot', 'HubSpot', 'marketing',
       ['hubspot.com', 'hs-scripts.com', 'hs-analytics.net', 'hsforms.com', 'hsappstatic.net', 'hubapi.com', 'usemessages.com'],
       'CRM- und Marketing-Plattform: verfolgt Besucher und verknüpft sie beim ersten Formular mit Name und E-Mail.'),
@@ -426,6 +441,12 @@ globalThis.WW = globalThis.WW || {};
       'Cookie-Banner- und Rechtstext-Dienst.'),
 
     // ── CDN & Infrastruktur ──────────────────────────────────────────────
+    E('jquery-cdn', 'jQuery CDN', 'OpenJS Foundation', 'cdn',
+      ['jquery.com'],
+      'Liefert die weit verbreitete JavaScript-Bibliothek jQuery aus. Reine Auslieferung — der Abruf verrät aber IP-Adresse und besuchte Seite.'),
+    E('shopify', 'Shopify', 'Shopify (CA)', 'cdn',
+      ['shopify.com', 'myshopify.com'],
+      'Shop-Plattform hinter vielen Online-Läden; liefert Seiten und Skripte aus und sieht dabei Besuche und Bestellungen im Shop.'),
     E('cloudflare', 'Cloudflare', 'Cloudflare', 'cdn',
       ['cloudflare.com', 'cloudflare.net', 'cdnjs.com', 'challenges.cloudflare.com'],
       'Riesiges Infrastruktur-Netz (CDN, Schutzdienste, Turnstile-Captcha); ein erheblicher Teil des Webs läuft über Cloudflare.'),
@@ -476,6 +497,24 @@ globalThis.WW = globalThis.WW || {};
       'Ehemals verbreitetes Skript-CDN — 2024 wurde es nach einem Eigentümerwechsel laut Sicherheitsforschern für die Auslieferung von Schadcode an zigtausende Websites missbraucht. Lehrbeispiel, warum Fremd-Skripte ein Risiko sind.'),
 
     // ── Funktionale Dienste ──────────────────────────────────────────────
+    E('equally-ai', 'Equally AI', 'Equally AI', 'functional',
+      ['equally.ai'],
+      'Barrierefreiheits-Widget, das Seiten nachträglich anpassen soll. Es lädt auf jeder Unterseite mit und übermittelt dabei die aufgerufene Adresse.'),
+    E('haendlerbund', 'Händlerbund', 'Händlerbund e. V. (DE)', 'functional',
+      ['haendlerbund.de'],
+      'Liefert Gütesiegel und Rechtstexte für Online-Shops aus; der Abruf des Siegels meldet den Seitenaufruf an den Händlerbund.'),
+    E('bfarm-versandhandel', 'Versandhandelsregister (BfArM)', 'Bundesinstitut für Arzneimittel und Medizinprodukte', 'functional',
+      ['dimdi.de'],
+      'Amtliches Versandhandelsregister: Apotheken binden von hier das Sicherheitslogo ein, das ihre Zulassung belegt.'),
+    E('recruitee', 'Recruitee', 'Tellent (NL)', 'functional',
+      ['recruitee.com', 'recruiteecdn.com'],
+      'Bewerbungsportal, das Stellenanzeigen und Bewerbungsformulare in Firmenseiten einbettet und Bewerbungen entgegennimmt.'),
+    E('indeed-apply', 'Indeed', 'Indeed', 'functional',
+      ['indeed.com'],
+      'Stellenbörse; das eingebettete Bewerbungsformular überträgt Bewerbungsdaten an Indeed und zeigt dort an, welche Stellen angesehen wurden.'),
+    E('ziggeo', 'Ziggeo', 'Ziggeo', 'functional',
+      ['ziggeo.com'],
+      'Dienst für Video-Aufnahme und -Wiedergabe im Browser, etwa für Video-Bewerbungen; aufgenommene Videos laufen über die Server des Anbieters.'),
     E('stripe', 'Stripe', 'Stripe', 'functional',
       ['stripe.com', 'stripe.network'],
       'Bezahldienst. Das Stripe-Skript sammelt zur Betrugserkennung detaillierte Gerätedaten — oft auf allen Seiten, nicht nur beim Bezahlen.'),
@@ -547,6 +586,9 @@ globalThis.WW = globalThis.WW || {};
       '„Mit Google anmelden"-Widgets; der Abruf verrät Google den Seitenbesuch, bei bestehendem Login samt Kontobezug.'),
 
     // ── Verlags-/Betreiber-Infrastruktur (eigene CDNs unter anderer Domain) ─
+    E('dm-eigene', 'dm (eigene Auslieferung)', 'dm-drogerie markt', 'cdn',
+      ['dm.de', 'dmtech.com', 'dm-static.com'],
+      'Technik-Domains von dm selbst: Produktbilder, Suche und Empfehlungen für dm.de. Die Daten bleiben beim Anbieter der Seite.'),
     E('bild-cdn', 'BILD (eigene Auslieferung)', 'Axel Springer (DE)', 'cdn',
       ['bild.de', 'bildstatic.de'],
       'Eigene Bild- und Skript-Domains der BILD.'),
@@ -651,13 +693,25 @@ globalThis.WW = globalThis.WW || {};
     { hostRe: /(^|\.)bing\.com$/, pathRe: /^\/(action|bat)/, entityId: 'microsoft-ads' },
   ];
 
+  // Stand der mitgelieferten Liste. Eine nachgeladene Fassung wird nur
+  // übernommen, wenn ihr Stand jünger ist (siehe dbupdate.js).
+  WW.TRACKER_DB_STAND = '2026-08-05';
+  WW.TRACKER_DB_QUELLE = 'mitgeliefert';
+
   // Nachschlage-Index: Domain → Entity. Längster (spezifischster) Treffer
   // gewinnt, weil vom vollen Hostnamen aus Suffix für Suffix gesucht wird.
+  // Wird neu aufgebaut, wenn eine aktualisierte Liste eingespielt wurde.
   const MAP = new Map();
-  for (const ent of WW.TRACKER_ENTITIES) {
-    for (const d of ent.dom) MAP.set(d, ent);
-  }
-  const BY_ID = new Map(WW.TRACKER_ENTITIES.map((e) => [e.id, e]));
+  const BY_ID = new Map();
+  WW.rebuildTrackerIndex = function rebuildTrackerIndex() {
+    MAP.clear();
+    BY_ID.clear();
+    for (const ent of WW.TRACKER_ENTITIES) {
+      for (const d of ent.dom) MAP.set(d, ent);
+      BY_ID.set(ent.id, ent);
+    }
+  };
+  WW.rebuildTrackerIndex();
 
   // host (+ optional Pfad) → Entity oder null
   WW.classifyHost = function classifyHost(host, path) {

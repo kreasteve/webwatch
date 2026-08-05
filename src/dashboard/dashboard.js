@@ -33,13 +33,37 @@
     if (!d) return;
     const ents = keys.map((k) => d.agg.entities[k]).filter(Boolean);
     if (!ents.length) return;
-    const lines = ['**Unbekannte Drittanbieter-Domain(s):**', ''];
+    // Als Markdown-Tabelle plus Checkliste — das ist die Ansicht, in der ein
+    // Issue später abgearbeitet wird, und liest sich deutlich besser als eine
+    // Aufzählung mit Klammerzusätzen.
+    const lines = [
+      `### ${ents.length === 1 ? 'Unbekannte Domain' : `Unbekannte Domains (${ents.length})`}`,
+      '',
+      '| Domain | Gesehen als | Anfragen |',
+      '| --- | --- | --- |',
+    ];
     for (const e of ents) {
-      lines.push(`- \`${e.name}\` (gesehen als: ${Object.keys(e.hosts).join(', ')}; ${anfragen(e.count)})`);
+      const hosts = Object.keys(e.hosts);
+      const gesehen = hosts.length
+        ? hosts.map((h) => `\`${h}\``).join('<br>')
+        : '—';
+      lines.push(`| \`${e.name}\` | ${gesehen} | ${e.count} |`);
     }
-    lines.push('', `**Gesehen beim Besuch von:** ${d.tab.pageBase || '?'}`,
-      '_(Hinweis: Die besuchte Seite hilft bei der Zuordnung — du kannst sie vor dem Absenden aber entfernen.)_',
-      '', `_Gemeldet aus Datenspur ${B.runtime.getManifest().version}. Zu klären: Wem gehört die Domain, was macht der Dienst, welche Kategorie passt?_`);
+    lines.push(
+      '',
+      `**Gesehen beim Besuch von:** \`${d.tab.pageBase || '?'}\``,
+      '',
+      'Die besuchte Seite hilft bei der Zuordnung — du kannst sie vor dem Absenden aber löschen, wenn du sie nicht nennen möchtest.',
+      '',
+      '---',
+      '',
+      '**Zu klären**',
+      '',
+      '- [ ] Betreiber ermittelt',
+      '- [ ] Dienst beschrieben',
+      '- [ ] Kategorie festgelegt',
+      '',
+      `<sub>Gemeldet aus Datenspur ${B.runtime.getManifest().version}</sub>`);
     const title = ents.length === 1
       ? 'Unbekannte Domain: ' + ents[0].name
       : `Unbekannte Domains (${ents.length}) von ${d.tab.pageBase || '?'}`;
@@ -170,7 +194,7 @@
             <span class="rdot ${riskClass(c)}"></span><h3>${WW.esc(ci.titel)}</h3>
             <span class="riskchip ${riskClass(c)}">${RISK_NAME[ci.risiko]}</span>
             <span class="desc">${WW.esc(ci.kurz)}</span>
-            ${isUnknown && group.length > 1 ? `<button class="std small" id="report-all-unknown" title="Öffnet ein vorausgefülltes GitHub-Issue — du siehst vor dem Absenden genau, was gemeldet wird">Alle ${group.length} melden</button>` : ''}
+            ${isUnknown && group.length > 1 ? `<button class="std small melden" id="report-all-unknown" title="Öffnet ein vorausgefülltes GitHub-Issue — du siehst vor dem Absenden genau, was gemeldet wird">Alle ${group.length} melden</button>` : ''}
           </div><div class="entgrid">`;
         for (const e of group) html += entCard(e, c);
         html += '</div>';
@@ -481,11 +505,9 @@
     const ents = Object.values(d.agg.entities).sort((a, b) => b.count - a.count);
     const fpCount = d.tab.requests.filter((r) => !r.tp).length;
     const MAX_NODES = 24;
+    // Die eigene Seite ist der Mittelpunkt des Graphen — sie bekommt keinen
+    // zweiten Knoten im Ring, sonst steht dieselbe Adresse doppelt im Bild.
     const shown = [];
-    // Eigene Seite als erster Knoten — sie gehört mit ins Bild
-    if (fpCount) {
-      shown.push({ key: '__fp__', fp: true, name: d.tab.pageBase || d.tab.pageHost || 'eigene Seite', count: fpCount });
-    }
     for (const e of ents.slice(0, MAX_NODES)) shown.push(e);
     const rest = ents.length - Math.min(ents.length, MAX_NODES);
     if (!shown.length) {
@@ -496,6 +518,10 @@
     const W = 960, H = 640, cx = W / 2, cy = H / 2;
     const maxCount = Math.max(...shown.map((e) => e.count));
     const RISK_FILL = { 1: 'var(--good)', 2: 'var(--warn)', 3: 'var(--crit)' };
+    // Beschriftungen liegen zwangsläufig über Verbindungslinien und teils über
+    // Nachbar-Beschriftungen. Ein Rand in Hintergrundfarbe, der hinter der
+    // Schrift gezeichnet wird, hält sie in jedem Fall lesbar.
+    const HALO = 'style="paint-order:stroke" stroke="var(--surface)" stroke-width="3" stroke-linejoin="round"';
 
     let nodes = '';
     let edges = '';
@@ -507,18 +533,15 @@
       const y = cy + ring * Math.sin(angle);
       const r = 9 + Math.sqrt(e.count / maxCount) * 14;
       const sw = 1 + Math.min(5, Math.log2(e.count + 1));
-      const fill = (e.fp || e.sameOwner) ? 'var(--accent)' : RISK_FILL[cat(e.cat).risiko];
+      const fill = e.sameOwner ? 'var(--accent)' : RISK_FILL[cat(e.cat).risiko];
       edges += `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--edge)" stroke-width="${sw.toFixed(1)}" opacity="0.55"/>`;
       const label = WW.cap(e.name, 22);
-      const sub = e.fp ? `eigene Seite · ${anfragen(e.count)}`
-        : e.sameOwner ? `Anbieter der Seite · ${anfragen(e.count)}` : anfragen(e.count);
-      const tip = e.fp
-        ? `${e.name} — Server der besuchten Seite selbst\n${anfragen(e.count)}`
-        : `${e.name}${e.owner ? ' — ' + e.owner : ''}${e.sameOwner ? ' (Anbieter dieser Seite)' : ''}\n${cat(e.cat).titel} · ${anfragen(e.count)}${e.cookies ? ' · Cookies gesendet' : ''}`;
+      const sub = e.sameOwner ? `Anbieter der Seite · ${anfragen(e.count)}` : anfragen(e.count);
+      const tip = `${e.name}${e.owner ? ' — ' + e.owner : ''}${e.sameOwner ? ' (Anbieter dieser Seite)' : ''}\n${cat(e.cat).titel} · ${anfragen(e.count)}${e.cookies ? ' · Cookies gesendet' : ''}`;
       nodes += `<g class="node" data-key="${WW.esc(e.key)}" style="cursor:pointer">
         <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="${fill}" stroke="var(--surface)" stroke-width="2"/>
-        <text x="${x.toFixed(1)}" y="${(y + r + 14).toFixed(1)}" text-anchor="middle" font-size="11" fill="var(--ink)">${WW.esc(label)}</text>
-        <text x="${x.toFixed(1)}" y="${(y + r + 27).toFixed(1)}" text-anchor="middle" font-size="10" fill="var(--muted)">${WW.esc(sub)}</text>
+        <text x="${x.toFixed(1)}" y="${(y + r + 14).toFixed(1)}" text-anchor="middle" font-size="11" fill="var(--ink)" ${HALO}>${WW.esc(label)}</text>
+        <text x="${x.toFixed(1)}" y="${(y + r + 27).toFixed(1)}" text-anchor="middle" font-size="10" fill="var(--muted)" ${HALO}>${WW.esc(sub)}</text>
         <title>${WW.esc(tip)}</title>
       </g>`;
     });
@@ -528,8 +551,11 @@
       <h2>Wohin diese Seite Verbindungen aufbaut <small>— Größe = Anzahl Anfragen, Farbe = Risiko der Kategorie. Klick auf einen Punkt zeigt die Anfragen.</small></h2>
       <div class="graphwrap"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Netzwerk-Karte der Drittanbieter-Verbindungen">
         ${edges}
-        <g><circle cx="${cx}" cy="${cy}" r="46" fill="var(--accent)"/>
-          <text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="13" font-weight="600" fill="#fff">${WW.esc(host)}</text>
+        <g class="node" data-key="__fp__" style="cursor:pointer">
+          <circle cx="${cx}" cy="${cy}" r="46" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>
+          <title>${WW.esc(d.tab.pageHost || '')} — Server der besuchten Seite selbst${fpCount ? '\n' + anfragen(fpCount) : ''}</title>
+          <text x="${cx}" y="${cy + 64}" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)" ${HALO}>${WW.esc(host)}</text>
+          <text x="${cx}" y="${cy + 78}" text-anchor="middle" font-size="10" fill="var(--muted)" ${HALO}>${fpCount ? `eigene Seite · ${WW.esc(anfragen(fpCount))}` : 'eigene Seite'}</text>
         </g>
         ${nodes}
       </svg></div>
@@ -544,12 +570,13 @@
     </div>`;
 
     $$('#view-netzwerk .node').forEach((g) => g.addEventListener('click', () => {
-      const e = shown.find((x) => x.key === g.dataset.key);
-      if (!e) return;
-      if (e.fp) {
+      if (g.dataset.key === '__fp__') {
+        // Mittelpunkt: zeigt die Anfragen an die besuchte Seite selbst
         state.search = d.tab.pageBase || '';
         state.onlyTp = false;
       } else {
+        const e = shown.find((x) => x.key === g.dataset.key);
+        if (!e) return;
         state.search = e.name;
         state.onlyTp = true;
       }
@@ -644,7 +671,48 @@
   };
 
   // ── Start ───────────────────────────────────────────────────
+  // ── Tracker-Datenbank: Stand anzeigen, auf Klick aktualisieren ──
+  const zeigeDbStand = () => {
+    const el = $('#db-stand');
+    if (!el) return;
+    const stand = WW.TRACKER_DB_STAND;
+    const quelle = WW.TRACKER_DB_QUELLE === 'nachgeladen' ? 'nachgeladen' : 'mitgeliefert';
+    el.textContent = `Stand ${stand}, ${WW.TRACKER_ENTITIES.length} Einträge (${quelle})`;
+  };
+
+  const wireDbUpdate = () => {
+    const btn = $('#btn-db-update');
+    const status = $('#db-status');
+    if (!btn || !WW.dbUpdate) return;
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      status.className = 'status';
+      status.textContent = 'Wird geladen …';
+      try {
+        const r = await WW.dbUpdate.holen();
+        zeigeDbStand();
+        if (r.neuer) {
+          status.textContent = `Aktualisiert: ${r.anzahl} Einträge, Stand ${r.stand}.`;
+          status.className = 'status ok';
+          await fetchData(true); // Auswertung mit der neuen Liste neu holen
+        } else {
+          status.textContent = 'Bereits aktuell.';
+          status.className = 'status ok';
+        }
+      } catch (e) {
+        status.textContent = 'Nicht geklappt: ' + (e && e.message ? e.message : 'unbekannter Fehler');
+        status.className = 'status err';
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  };
+
   const init = async () => {
+    if (WW.dbUpdate) await WW.dbUpdate.ausStorage().catch(() => {});
+    zeigeDbStand();
+    wireDbUpdate();
+
     const stored = await B.storage.local.get(['ds_mode', 'ds_reset_on_reload']).catch(() => ({}));
     if (stored && stored.ds_mode === 'profi') setMode('profi');
 

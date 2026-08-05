@@ -32,12 +32,21 @@
     <section id="view-lexikon" class="view" hidden></section>
   </main>
 
+  <footer class="dbbar">
+    <span class="lbl">Tracker-Datenbank</span>
+    <span id="db-stand">—</span>
+    <button id="btn-db-update" class="std small"
+      title="Holt die aktuelle Liste von GitHub. Passiert ausschließlich auf diesen Klick — Datenspur verbindet sich sonst mit keinem Server.">Aktualisieren</button>
+    <span id="db-status" class="status"></span>
+  </footer>
+
   <div id="picker" class="picker" hidden></div>
 
   <script src="../common/compat.js"></script>
   <script src="../common/domain.js"></script>
   <script src="../common/categories.js"></script>
   <script src="../common/trackerdb.js"></script>
+  <script src="../common/dbupdate.js"></script>
   <script src="../common/decoder.js"></script>
   <script src="../common/score.js"></script>
   <script src="dashboard.js"></script>

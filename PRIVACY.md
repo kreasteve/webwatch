@@ -47,8 +47,11 @@ der Server sind für sie technisch nicht lesbar.
 
 ## Was wir tun, um deine Daten zu schützen
 
-- **Keine Übertragung.** Die Erweiterung baut keine eigenen Netzwerk-
-  verbindungen auf, meldet sich bei keinem Server und enthält keine Telemetrie.
+- **Keine Übertragung von selbst.** Die Erweiterung meldet sich bei keinem
+  Server, enthält keine Telemetrie und sendet nichts an die Entwickler. Von
+  sich aus baut sie überhaupt keine Verbindung auf — nur wenn du im Dashboard
+  auf „Aktualisieren" drückst, holt sie die Tracker-Liste von GitHub
+  (siehe unten).
 - **Keine Weitergabe, kein Verkauf.** Nutzerdaten gehen an niemanden — auch
   nicht zur Bonitätsprüfung oder für Darlehenszwecke.
 - **Keine zweckfremde Nutzung.** Die verarbeiteten Daten dienen ausschließlich
@@ -64,6 +67,16 @@ der Server sind für sie technisch nicht lesbar.
   Auswertung in deine Zwischenablage oder in eine von dir gespeicherte Datei.
   Was du damit machst — etwa sie einer KI zur Erklärung vorlegen —,
   entscheidest ausschließlich du.
+- **Tracker-Liste aktualisieren:** Über den Knopf „Aktualisieren" in der
+  Fußzeile des Dashboards holt Datenspur die aktuelle Liste bekannter
+  Drittanbieter von GitHub. Das geschieht **ausschließlich auf diesen Klick**,
+  nie automatisch und nie im Hintergrund. Übertragen wird dabei nichts über
+  dich oder deine besuchten Seiten — es ist ein einfacher Dateiabruf. Wie bei
+  jedem Abruf im Internet erfährt der Server dabei allerdings deine
+  IP-Adresse und den Zeitpunkt; Betreiber ist GitHub (Microsoft). Wer das
+  nicht möchte, drückt den Knopf nicht: Die mitgelieferte Liste funktioniert
+  unverändert weiter. Geladen werden reine Daten, niemals Programmcode, und
+  alles, was nicht dem erwarteten Format entspricht, wird verworfen.
 - **Unbekannte Adresse melden:** Wenn du den Melden-Knopf benutzt, öffnet
   Datenspur in einem neuen Tab ein vorausgefülltes Formular für ein Ticket im
   öffentlichen GitHub-Repository. Vorausgefüllt sind: die unbekannte(n)

@@ -6,6 +6,7 @@ importScripts(
   '../common/domain.js',
   '../common/categories.js',
   '../common/trackerdb.js',
+  '../common/dbupdate.js',
   '../common/decoder.js',
   '../common/insights.js',
   '../common/score.js',

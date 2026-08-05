@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Datenspur",
   "version": "0.3.2",
-  "description": "Macht sichtbar, was besuchte Websites an ihre Server und an Dritte schicken — mit Klartext-Erklärungen für Laien und Rohdaten für Profis. Alles bleibt lokal.",
+  "description": "Zeigt, was eine Website an ihren Betreiber und an Dritte schickt — Klartext für Laien, Rohdaten für Profis. Alles bleibt lokal.",
   "homepage_url": "https://github.com/kreasteve/datenspur",
   "permissions": [
     "webRequest",
@@ -16,6 +16,7 @@
       "common/domain.js",
       "common/categories.js",
       "common/trackerdb.js",
+      "common/dbupdate.js",
       "common/decoder.js",
       "common/insights.js",
       "common/score.js",

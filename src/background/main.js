@@ -7,6 +7,17 @@ globalThis.WW = globalThis.WW || {};
   const B = WW.B;
   if (!B || !B.runtime) return; // Node-Testharness
 
+  // Eine zuvor im Dashboard nachgeladene Tracker-Liste einspielen. Kein
+  // Netzzugriff — gelesen wird nur, was lokal gespeichert ist.
+  if (WW.dbUpdate) {
+    WW.dbUpdate.ausStorage().catch(() => {});
+    if (B.storage && B.storage.onChanged) {
+      B.storage.onChanged.addListener((aenderungen, bereich) => {
+        if (bereich === 'local' && aenderungen[WW.dbUpdate.KEY]) WW.dbUpdate.ausStorage().catch(() => {});
+      });
+    }
+  }
+
   // Nach jedem Flush: Badge (Anzahl kontaktierter Drittfirmen, Farbe nach
   // Ampel) und offene UI-Seiten benachrichtigen.
   WW.store.onFlush = (tabId, tab) => {

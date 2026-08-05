@@ -196,6 +196,17 @@ button.std {
 button.std:hover { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
 button.std.small { font-size: 12px; padding: 4px 9px; }
 
+/* Sammelmeldung: der wirksamste Weg, wie die Datenbank waechst - deshalb
+   hervorgehoben und rechtsbuendig am Ende der Kategoriezeile.
+   Bernstein mit dunkler Schrift statt weisser: deutlich besserer Kontrast. */
+button.std.melden {
+  margin-left: auto;
+  background: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 72%, #000);
+  color: #241a00; font-weight: 600;
+}
+button.std.melden:hover { background: color-mix(in srgb, var(--warn) 86%, #000); }
+
 /* ── Netzwerk ───────────────────────────────────────────────── */
 .graphwrap { overflow-x: auto; }
 .graphwrap svg { display: block; width: 100%; max-width: 1100px; margin: 0 auto; height: auto; }
@@ -226,3 +237,18 @@ button.std.small { font-size: 12px; padding: 4px 9px; }
 .picker .row:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
 .picker .row .host { font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; }
 .picker .row .cnt { color: var(--muted); font-size: 12px; }
+
+/* Fußleiste: Stand der Tracker-Datenbank + Aktualisieren-Knopf */
+.dbbar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 18px; border-top: 1px solid var(--hairline);
+  background: var(--surface); color: var(--ink-2); font-size: 12px;
+  /* Am unteren Rand angeheftet - sonst laege die Leiste unter der ganzen
+     Auswertung und waere praktisch unauffindbar. */
+  position: sticky; bottom: 0; z-index: 5;
+  box-shadow: 0 -2px 10px rgba(11, 11, 11, .06);
+}
+.dbbar .lbl { color: var(--muted); }
+.dbbar .status { color: var(--muted); }
+.dbbar .status.ok { color: var(--good); }
+.dbbar .status.err { color: var(--crit); }

@@ -58,7 +58,11 @@ globalThis.WW = globalThis.WW || {};
   B.webRequest.onBeforeRequest.addListener((d) => {
     if (skip(d)) return;
     if (d.type === 'main_frame') {
-      WW.store.onMainFrame(d.tabId, d.url);
+      // Von der Seite selbst ausgelöste Navigationen (Chrome: initiator,
+      // Firefox: originUrl/documentUrl) sind kein Neuladen durch den Nutzer —
+      // etwa der Reload, den ein Cookie-Banner nach dem Zustimmen auslöst.
+      const vonSeite = !!(d.initiator || d.originUrl || d.documentUrl);
+      WW.store.onMainFrame(d.tabId, d.url, vonSeite);
     }
     const tab = WW.store.getOrCreateTab(d.tabId, d.type === 'main_frame' ? d.url : undefined);
     const rec = mkRec(d, tab);
