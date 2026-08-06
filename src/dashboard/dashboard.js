@@ -36,18 +36,38 @@
     // Als Markdown-Tabelle plus Checkliste — das ist die Ansicht, in der ein
     // Issue später abgearbeitet wird, und liest sich deutlich besser als eine
     // Aufzählung mit Klammerzusätzen.
+    // Beispielpfade mitschicken: Bei Konzern-Domains wie google.com haengt die
+    // Zuordnung am Pfad (/recaptcha/, /maps/, /pagead/ …) — ohne ihn laesst sich
+    // ein Eintrag nicht schreiben. Ohne Query, die enthaelt oft Kennungen.
+    const pfade = (e) => {
+      const hosts = new Set(Object.keys(e.hosts || {}));
+      const out = [];
+      for (const r of (d.tab.requests || [])) {
+        if (!hosts.has(r.host)) continue;
+        let pfad = '';
+        try { pfad = new URL(r.url).pathname; } catch (x) { continue; }
+        if (!pfad || out.includes(pfad)) continue;
+        out.push(WW.cap(pfad, 60));
+        if (out.length >= 3) break;
+      }
+      return out;
+    };
     const lines = [
       `### ${ents.length === 1 ? 'Unbekannte Domain' : `Unbekannte Domains (${ents.length})`}`,
       '',
-      '| Domain | Gesehen als | Anfragen |',
-      '| --- | --- | --- |',
+      '| Domain | Gesehen als | Beispiel-Pfade | Anfragen |',
+      '| --- | --- | --- | --- |',
     ];
     for (const e of ents) {
       const hosts = Object.keys(e.hosts);
       const gesehen = hosts.length
         ? hosts.map((h) => `\`${h}\``).join('<br>')
         : '—';
-      lines.push(`| \`${e.name}\` | ${gesehen} | ${e.count} |`);
+      const gesehenePfade = pfade(e);
+      const pfadZelle = gesehenePfade.length
+        ? gesehenePfade.map((x) => `\`${x}\``).join('<br>')
+        : '—';
+      lines.push(`| \`${e.name}\` | ${gesehen} | ${pfadZelle} | ${e.count} |`);
     }
     lines.push(
       '',

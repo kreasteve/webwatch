@@ -379,6 +379,17 @@ t('dy-api.eu bleibt unbekannt', WW.classifyHost('direct.dy-api.eu') === null);
 t('alia-prod.com bleibt unbekannt', WW.classifyHost('backend.alia-prod.com') === null);
 t('provenexpert.net bleibt unbekannt', WW.classifyHost('provenexpert.net') === null);
 
+// Microsoft-Diagnosedaten (Meldung #13)
+t('Microsoft-Telemetrie erkannt',
+  (WW.classifyHost('browser.events.data.microsoft.com') || {}).id === 'ms-telemetry');
+t('Microsoft-Telemetrie nicht als Werbung eingestuft',
+  (WW.classifyHost('browser.events.data.microsoft.com') || {}).cat === 'analytics');
+// Pfad-Hinweise fuer Konzern-Domains greifen weiterhin
+t('google.com/recaptcha bleibt reCAPTCHA',
+  (WW.classifyHost('www.google.com', '/recaptcha/api.js') || {}).id === 'recaptcha');
+t('google.com ohne passenden Pfad bleibt unbekannt',
+  WW.classifyHost('www.google.com', '/cse/cse.js') === null);
+
 // ── Tab-Speicher: Neuladen vs. Navigation vs. Cookie-Banner ──
 const S = WW.store;
 const tabOf = () => S.getOrCreateTab(7);

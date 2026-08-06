@@ -24,6 +24,9 @@ globalThis.WW = globalThis.WW || {};
     E('microsoft-ads', 'Microsoft Advertising (Bing Ads)', 'Microsoft', 'advertising',
       ['bat.bing.com', 'ads.microsoft.com', 'msads.net'],
       'Microsofts Werbe- und Conversion-Tracking, u. a. über das „UET-Tag" auf vielen Shopping-Seiten.'),
+    E('ms-telemetry', 'Microsoft-Diagnosedaten', 'Microsoft', 'analytics',
+      ['events.data.microsoft.com'],
+      'Microsofts zentrale Sammelstelle für Diagnosedaten. Unter „browser." meldet sich meist der Browser selbst (Edge) mit Nutzungsstatistiken — das geht dann nicht von der besuchten Seite aus, sondern vom Browser.'),
     E('criteo', 'Criteo', 'Criteo S.A.', 'advertising',
       ['criteo.com', 'criteo.net'],
       'Retargeting-Spezialist: sorgt dafür, dass dich angesehene Produkte als Werbung durchs Web „verfolgen".'),
@@ -695,7 +698,7 @@ globalThis.WW = globalThis.WW || {};
 
   // Stand der mitgelieferten Liste. Eine nachgeladene Fassung wird nur
   // übernommen, wenn ihr Stand jünger ist (siehe dbupdate.js).
-  WW.TRACKER_DB_STAND = '2026-08-05';
+  WW.TRACKER_DB_STAND = '2026-08-06';
   WW.TRACKER_DB_QUELLE = 'mitgeliefert';
 
   // Nachschlage-Index: Domain → Entity. Längster (spezifischster) Treffer
